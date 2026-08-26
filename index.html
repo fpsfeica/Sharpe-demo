@@ -467,6 +467,9 @@
     html.classList.add('demo-locked');
   }
   async function sha256Hex(str){
+    if (!(window.crypto && window.crypto.subtle)) {
+      throw new Error('insecure-context');
+    }
     var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
     return Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
   }
@@ -478,15 +481,20 @@
     if (!form) return;
     form.addEventListener('submit', function(e){
       e.preventDefault();
+      error.hidden = true;
       sha256Hex(input.value.trim()).then(function(hash){
         if (hash === HASH) {
           try { localStorage.setItem(KEY, '1'); } catch(e) {}
           unlock();
         } else {
+          error.textContent = 'Incorrect code — please try again.';
           error.hidden = false;
           input.value = '';
           input.focus();
         }
+      }).catch(function(){
+        error.textContent = 'This preview must be opened over https:// (the live link), not a local file, for the code check to work.';
+        error.hidden = false;
       });
     });
   });
